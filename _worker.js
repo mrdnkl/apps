@@ -88,9 +88,9 @@ export default {
       }
 
       // ==========================================
-      // ROUTE 3: /live/stream.m3u8?id=... (Stream Resolver)
+      // ROUTE 3: /live/stream?id=... (Stream Resolver)
       // ==========================================
-      if (url.pathname === "/live/stream.m3u8") {
+      if (url.pathname === "/live/stream") {
         const rawStreamId = url.searchParams.get("id");
         if (!rawStreamId) {
           console.warn("[Stream Warning] Request missing 'id' parameter.");
@@ -315,7 +315,7 @@ async function buildSingleProviderPlaylist(workerDomain, provider, apiKeyParam, 
       if (!validateStreamUrl(line, allowedDomains).valid) continue;
       const streamId = extractStreamId(line);
       if (streamId) {
-        linesOutput.push(`${workerDomain}/live/stream.m3u8?id=${provider.prefix}_${streamId}.m3u8${apiKeyParam}`);
+        linesOutput.push(`${workerDomain}/live/stream?id=${provider.prefix}_${streamId}.m3u8${apiKeyParam}`);
       } else {
         linesOutput.push(line);
       }
@@ -349,7 +349,7 @@ async function buildNamespacedPlaylist(workerDomain, providers, apiKeyParam, env
           if (!validateStreamUrl(line, allowedDomains).valid) continue;
           const streamId = extractStreamId(line);
           if (streamId) {
-            combinedLines.push(`${workerDomain}/live/stream.m3u8?id=${provider.prefix}_${streamId}.m3u8${apiKeyParam}`);
+            combinedLines.push(`${workerDomain}/live/stream?id=${provider.prefix}_${streamId}.m3u8${apiKeyParam}`);
           } else {
             combinedLines.push(line);
           }
@@ -454,4 +454,4 @@ function convertToM3U8Url(rawUrl) {
   } catch (e) {
     return rawUrl;
   }
-			  }
+}
