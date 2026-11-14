@@ -4,7 +4,14 @@
 const DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 Minutes Cache
 
-// Global memory cache for provider M3U content
+// Approved media extensions whitelist
+const MEDIA_EXTENSIONS = {
+  hls: ['.m3u8', '.m3u', '.ts', '.m4s', '.mp4', '.aac', '.mp3', '.vtt'],
+  dash: ['.mpd', '.m4s', '.mp4', '.webm', '.vtt'],
+  mpegts: ['.ts', '.m2ts'],
+};
+
+const ALLOWED_EXTENSIONS = [...new Set(Object.values(MEDIA_EXTENSIONS).flat())];
 const providerCaches = {};
 
 export default {
@@ -12,191 +19,223 @@ export default {
     const url = new URL(request.url);
     const workerDomain = url.origin;
 
-    // 1. Optional API Key check (if env.API_KEY is defined)
-    const authError = verifyApiKey(url, env);
-    if (authError) {
-      return authError;
-    }
-
-    const apiKeyParam = env.API_KEY && env.API_KEY.trim() !== "" ? `&key=${encodeURIComponent(env.API_KEY)}` : "";
-
-    // 2. Build provider list from environment variables (env.P1, env.P2, env.P3...)
-    const providers = buildProvidersFromEnv(env);
-
-    if (providers.length === 0) {
-      return new Response("Error: No provider environment variables (P1, P2, etc.) configured.", { status: 500 });
-    }
-
-    // ==========================================
-    // ROUTE 1: Split Playlist by Provider (/playlist_p1.m3u)
-    // ==========================================
-    const splitMatch = url.pathname.match(/^\/playlist_([a-zA-Z0-9]+)\.m3u$/);
-
-    if (splitMatch) {
-      const requestedPrefix = splitMatch[1].toLowerCase();
-      const targetProvider = providers.find(p => p.prefix === requestedPrefix);
-
-      if (!targetProvider) {
-        return new Response(`Error: Provider playlist '${requestedPrefix}' not found.`, { status: 404 });
+    try {
+      // 1. Optional API Key security check
+      const authError = verifyApiKey(url, env);
+      if (authError) {
+        console.warn(`[Security] Unauthorized access attempt from IP: ${request.headers.get("CF-Connecting-IP") || "unknown"}`);
+        return authError;
       }
 
-      try {
-        const singlePlaylist = await buildSingleProviderPlaylist(workerDomain, targetProvider, apiKeyParam, env);
+      const apiKeyParam = env.API_KEY && env.API_KEY.trim() !== "" ? `&key=${encodeURIComponent(env.API_KEY)}` : "";
 
-        return new Response(singlePlaylist, {
-          headers: {
-            "Content-Type": "audio/x-mpegurl",
-            "Content-Disposition": `inline; filename="playlist_${requestedPrefix}.m3u"`,
-            "Access-Control-Allow-Origin": "*",
-            "Cache-Control": "no-cache"
-          }
-        });
-      } catch (err) {
-        return new Response(`Worker Error: ${err.message}`, { status: 500 });
-      }
-    }
-
-    // ==========================================
-    // ROUTE 2: /playlist.m3u (Merged All-in-One Playlist)
-    // ==========================================
-    if (url.pathname === "/playlist.m3u") {
-      try {
-        const mergedPlaylist = await buildNamespacedPlaylist(workerDomain, providers, apiKeyParam, env);
-
-        return new Response(mergedPlaylist, {
-          headers: {
-            "Content-Type": "audio/x-mpegurl",
-            "Content-Disposition": 'inline; filename="playlist.m3u"',
-            "Access-Control-Allow-Origin": "*",
-            "Cache-Control": "no-cache"
-          }
-        });
-      } catch (err) {
-        return new Response(`Worker Error: ${err.message}`, { status: 500 });
-      }
-    }
-
-    // ==========================================
-    // ROUTE 3: /live/stream?id=p1_101.m3u8 (Stream Proxy)
-    // ==========================================
-    if (url.pathname === "/live/stream") {
-      const rawStreamId = url.searchParams.get("id");
-
-      if (!rawStreamId) {
-        return new Response("Error: Missing 'id' parameter.", { status: 400 });
+      // 2. Build provider list from environment variables
+      const providers = buildProvidersFromEnv(env);
+      if (providers.length === 0) {
+        console.error("[Config Error] No provider environment variables (P1, P2, etc.) were found in environment settings.");
+        return new Response("Configuration Error: No M3U providers configured.", { status: 500 });
       }
 
-      const cleanId = sanitizeStreamId(rawStreamId);
-      const { prefix, targetId } = parseNamespacedId(cleanId);
+      const allowedDomains = buildAllowedDomains(env, providers);
 
-      try {
-        let targetStreamUrl = null;
+      // ==========================================
+      // ROUTE 1: Split Playlist by Provider (/playlist_p1.m3u)
+      // ==========================================
+      const splitMatch = url.pathname.match(/^\/playlist_([a-zA-Z0-9]+)\.m3u$/);
+      if (splitMatch) {
+        const requestedPrefix = splitMatch[1].toLowerCase();
+        const targetProvider = providers.find(p => p.prefix === requestedPrefix);
 
-        if (prefix) {
-          targetStreamUrl = await findStreamInSpecificProvider(providers, prefix, targetId, env);
-        } else {
-          targetStreamUrl = await findStreamAcrossProviders(providers, targetId, env);
+        if (!targetProvider) {
+          console.warn(`[Route Warning] Requested split playlist prefix '${requestedPrefix}' does not exist.`);
+          return new Response(`Error: Provider playlist '${requestedPrefix}' not found.`, { status: 404 });
         }
 
-        if (!targetStreamUrl) {
-          return new Response(`Error: Stream ID '${targetId}' not found.`, { status: 404 });
+        try {
+          const singlePlaylist = await buildSingleProviderPlaylist(workerDomain, targetProvider, apiKeyParam, env, allowedDomains);
+          return new Response(singlePlaylist, {
+            headers: {
+              "Content-Type": "audio/x-mpegurl",
+              "Content-Disposition": `inline; filename="playlist_${requestedPrefix}.m3u"`,
+              "Access-Control-Allow-Origin": "*",
+              "Cache-Control": "no-cache"
+            }
+          });
+        } catch (err) {
+          console.error(`[Playlist Error] Failed building playlist for ${targetProvider.name}:`, err.stack || err.message);
+          return new Response(`Error generating provider playlist: ${err.message}`, { status: 502 });
+        }
+      }
+
+      // ==========================================
+      // ROUTE 2: /playlist.m3u (Merged Playlist)
+      // ==========================================
+      if (url.pathname === "/playlist.m3u") {
+        try {
+          const mergedPlaylist = await buildNamespacedPlaylist(workerDomain, providers, apiKeyParam, env, allowedDomains);
+          return new Response(mergedPlaylist, {
+            headers: {
+              "Content-Type": "audio/x-mpegurl",
+              "Content-Disposition": 'inline; filename="playlist.m3u"',
+              "Access-Control-Allow-Origin": "*",
+              "Cache-Control": "no-cache"
+            }
+          });
+        } catch (err) {
+          console.error("[Playlist Error] Failed building merged multi-provider playlist:", err.stack || err.message);
+          return new Response(`Error generating merged playlist: ${err.message}`, { status: 502 });
+        }
+      }
+
+      // ==========================================
+      // ROUTE 3: /live/stream.m3u8?id=... (Stream Resolver)
+      // ==========================================
+      if (url.pathname === "/live/stream.m3u8") {
+        const rawStreamId = url.searchParams.get("id");
+        if (!rawStreamId) {
+          console.warn("[Stream Warning] Request missing 'id' parameter.");
+          return new Response("Error: Missing 'id' parameter.", { status: 400 });
         }
 
-        const formattedUrl = convertToM3U8Url(targetStreamUrl);
+        const cleanId = sanitizeStreamId(rawStreamId);
+        const { prefix, targetId } = parseNamespacedId(cleanId);
 
-        const m3u8Content = [
-          "#EXTM3U",
-          "#EXT-X-VERSION:3",
-          "#EXT-X-STREAM-INF:PROGRAM-ID=1,AVERAGE-BANDWIDTH=2200000,BANDWIDTH=2200000",
-          formattedUrl
-        ].join("\n");
-
-        return new Response(m3u8Content, {
-          headers: {
-            "Content-Type": "application/vnd.apple.mpegurl",
-            "Access-Control-Allow-Origin": "*",
-            "Cache-Control": "no-cache"
+        try {
+          let targetStreamUrl = null;
+          if (prefix) {
+            targetStreamUrl = await findStreamInSpecificProvider(providers, prefix, targetId, env);
+          } else {
+            targetStreamUrl = await findStreamAcrossProviders(providers, targetId, env);
           }
-        });
 
-      } catch (err) {
-        return new Response(`Worker Error: ${err.message}`, { status: 500 });
+          if (!targetStreamUrl) {
+            console.warn(`[Stream Notice] Stream ID '${targetId}' (Prefix: ${prefix || 'none'}) not found in active providers.`);
+            return new Response(`Error: Stream ID '${targetId}' not found.`, { status: 404 });
+          }
+
+          const formattedUrl = convertToM3U8Url(targetStreamUrl);
+
+          // Security Check: Validate domain and extensions
+          const validationResult = validateStreamUrl(formattedUrl, allowedDomains);
+          if (!validationResult.valid) {
+            console.error(`[Security Violation] Blocked unsafe stream URL '${formattedUrl}'. Reason: ${validationResult.reason}`);
+            return new Response(`403 Forbidden: ${validationResult.reason}`, { status: 403 });
+          }
+
+          const m3u8Content = [
+            "#EXTM3U",
+            "#EXT-X-VERSION:3",
+            "#EXT-X-STREAM-INF:PROGRAM-ID=1,AVERAGE-BANDWIDTH=2200000,BANDWIDTH=2200000",
+            formattedUrl
+          ].join("\n");
+
+          return new Response(m3u8Content, {
+            headers: {
+              "Content-Type": "application/vnd.apple.mpegurl",
+              "Access-Control-Allow-Origin": "*",
+              "Cache-Control": "no-cache"
+            }
+          });
+
+        } catch (err) {
+          console.error(`[Stream Error] Failed resolving stream ID '${cleanId}':`, err.stack || err.message);
+          return new Response(`Stream Resolution Error: ${err.message}`, { status: 502 });
+        }
       }
-    }
 
-    return new Response(await nginx(), {
-				headers: {
-					'Content-Type': 'text/html; charset=UTF-8',
-				},
-			});
+      // Fallback for root or unknown paths
+      return new Response("IPTV Proxy Worker Active & Healthy.", { status: 200 });
+
+    } catch (globalErr) {
+      // Catch-all for catastrophic unexpected crashes
+      console.error("[Fatal Error] Unhandled exception in worker fetch handler:", globalErr.stack || globalErr.message);
+      return new Response(`Internal Server Error: ${globalErr.message}`, { status: 500 });
+    }
   }
 };
 
-async function nginx() {
-	const text = `
-	<!DOCTYPE html>
-	<html>
-	<head>
-	<title>Welcome to nginx!</title>
-	<style>
-		body {
-			width: 35em;
-			margin: 0 auto;
-			font-family: Tahoma, Verdana, Arial, sans-serif;
-		}
-	</style>
-	</head>
-	<body>
-	<h1>Welcome to nginx!</h1>
-	<p>If you see this page, the nginx web server is successfully installed and
-	working. Further configuration is required.</p>
-	
-	<p>For online documentation and support please refer to
-	<a href="http://nginx.org/">nginx.org</a>.<br/>
-	Commercial support is available at
-	<a href="http://nginx.com/">nginx.com</a>.</p>
-	
-	<p><em>Thank you for using nginx.</em></p>
-	</body>
-	</html>
-	`
-	return text;
-}
-
 // ==========================================
-// HELPER FUNCTIONS
+// HELPER & SECURITY FUNCTIONS
 // ==========================================
 
-/**
- * Validates API key if configured
- */
-function verifyApiKey(url, env) {
-  if (!env.API_KEY || env.API_KEY.trim() === "") {
-    return null;
+function buildAllowedDomains(env, providers) {
+  const domains = new Set();
+  if (env.ALLOWED_DOMAINS && typeof env.ALLOWED_DOMAINS === "string") {
+    env.ALLOWED_DOMAINS.split(",").forEach(entry => {
+      const cleaned = entry.trim().toLowerCase();
+      if (cleaned) domains.add(cleaned);
+    });
   }
 
-  const clientKey = url.searchParams.get("key");
+  providers.forEach(provider => {
+    try {
+      const hostname = new URL(provider.url).hostname.toLowerCase();
+      if (!isGitHubUrl(hostname)) {
+        domains.add(hostname);
+      }
+    } catch (e) {
+      console.warn(`[Config Warning] Malformed provider URL skipped in domain builder: ${provider.url}`);
+    }
+  });
 
+  return Array.from(domains);
+}
+
+function isDomainAllowed(hostname, allowedDomains) {
+  if (!allowedDomains || allowedDomains.length === 0) return false;
+  const targetHost = hostname.toLowerCase();
+
+  return allowedDomains.some(pattern => {
+    if (pattern.startsWith("*.")) {
+      const baseDomain = pattern.slice(2);
+      return targetHost === baseDomain || targetHost.endsWith(`.${baseDomain}`);
+    }
+    return targetHost === pattern;
+  });
+}
+
+function validateStreamUrl(rawUrl, allowedDomains) {
+  try {
+    const parsedUrl = new URL(rawUrl);
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      return { valid: false, reason: "Invalid protocol." };
+    }
+    if (!isDomainAllowed(parsedUrl.hostname, allowedDomains)) {
+      return { valid: false, reason: `Domain '${parsedUrl.hostname}' not whitelisted.` };
+    }
+    const pathname = parsedUrl.pathname.toLowerCase();
+    const hasAllowedPathExt = ALLOWED_EXTENSIONS.some(ext => pathname.endsWith(ext));
+    if (hasAllowedPathExt) return { valid: true };
+
+    const queryExt = parsedUrl.searchParams.get("extension");
+    if (queryExt) {
+      const normalizedQueryExt = queryExt.startsWith(".") ? queryExt.toLowerCase() : `.${queryExt.toLowerCase()}`;
+      if (ALLOWED_EXTENSIONS.includes(normalizedQueryExt)) return { valid: true };
+    }
+
+    return { valid: false, reason: "Extension not allowed." };
+  } catch (e) {
+    return { valid: false, reason: "Malformed URL format." };
+  }
+}
+
+function verifyApiKey(url, env) {
+  if (!env.API_KEY || env.API_KEY.trim() === "") return null;
+  const clientKey = url.searchParams.get("key");
   if (!clientKey || clientKey !== env.API_KEY) {
     return new Response("401 Unauthorized: Invalid or missing API key.", {
       status: 401,
       headers: { "Content-Type": "text/plain" }
     });
   }
-
   return null;
 }
 
-/**
- * Builds array of providers from env.P1, env.P2, env.P3...
- */
 function buildProvidersFromEnv(env) {
   const providers = [];
-
   for (let i = 1; i <= 10; i++) {
     const key = `P${i}`;
     const url = env[key];
-
     if (url && typeof url === "string" && url.trim().length > 0) {
       providers.push({
         prefix: `p${i}`,
@@ -207,13 +246,9 @@ function buildProvidersFromEnv(env) {
       });
     }
   }
-
   return providers;
 }
 
-/**
- * Fetches and caches M3U content, injecting GitHub Token headers for raw.githubusercontent.com
- */
 async function getOrFetchProviderM3U(provider, env) {
   const now = Date.now();
   const cacheKey = provider.name;
@@ -223,7 +258,6 @@ async function getOrFetchProviderM3U(provider, env) {
   }
 
   const cache = providerCaches[cacheKey];
-
   if (cache.content && (now - cache.lastFetch < CACHE_TTL_MS)) {
     return cache.content;
   }
@@ -233,50 +267,55 @@ async function getOrFetchProviderM3U(provider, env) {
     ...(provider.headers || {})
   };
 
-  // If fetching from GitHub and GITHUB_TOKEN is available, attach Bearer token
   if (isGitHubUrl(provider.url) && env.GITHUB_TOKEN && env.GITHUB_TOKEN.trim() !== "") {
     requestHeaders["Authorization"] = `Bearer ${env.GITHUB_TOKEN.trim()}`;
   }
 
-  const response = await fetch(provider.url, { method: "GET", headers: requestHeaders });
+  try {
+    const response = await fetch(provider.url, { method: "GET", headers: requestHeaders });
+    if (!response.ok) {
+      console.error(`[HTTP Error] Upstream provider '${provider.name}' returned status ${response.status} (${response.statusText}) for URL: ${provider.url}`);
+      if (cache.content) {
+        console.warn(`[Cache Notice] Serving stale cache for '${provider.name}' due to upstream fetch failure.`);
+        return cache.content;
+      }
+      return null;
+    }
 
-  if (!response.ok) {
-    if (cache.content) return cache.content;
+    cache.content = await response.text();
+    cache.lastFetch = now;
+    return cache.content;
+  } catch (fetchErr) {
+    console.error(`[Network Error] Failed connecting to provider '${provider.name}' (${provider.url}):`, fetchErr.message);
+    if (cache.content) {
+      console.warn(`[Cache Notice] Serving stale cache for '${provider.name}' due to network timeout/exception.`);
+      return cache.content;
+    }
     return null;
   }
-
-  cache.content = await response.text();
-  cache.lastFetch = now;
-  return cache.content;
 }
 
-/**
- * Helper: Checks if URL targets GitHub raw content or API
- */
 function isGitHubUrl(urlStr) {
   return urlStr.includes("githubusercontent.com") || urlStr.includes("github.com");
 }
 
-/**
- * Generates playlist for a SINGLE provider
- */
-async function buildSingleProviderPlaylist(workerDomain, provider, apiKeyParam, env) {
+async function buildSingleProviderPlaylist(workerDomain, provider, apiKeyParam, env, allowedDomains) {
   let linesOutput = ["#EXTM3U"];
-
   const rawM3u = await getOrFetchProviderM3U(provider, env);
-  if (!rawM3u) return "#EXTM3U\n";
+  if (!rawM3u) {
+    throw new Error(`Unable to fetch or retrieve M3U content for ${provider.name}`);
+  }
 
   const lines = rawM3u.split("\n");
-
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-
     if (line.startsWith("#EXTM3U")) continue;
 
     if (line.startsWith("http")) {
+      if (!validateStreamUrl(line, allowedDomains).valid) continue;
       const streamId = extractStreamId(line);
       if (streamId) {
-        linesOutput.push(`${workerDomain}/live/stream?id=${provider.prefix}_${streamId}.m3u8${apiKeyParam}`);
+        linesOutput.push(`${workerDomain}/live/stream.m3u8?id=${provider.prefix}_${streamId}.m3u8${apiKeyParam}`);
       } else {
         linesOutput.push(line);
       }
@@ -288,51 +327,53 @@ async function buildSingleProviderPlaylist(workerDomain, provider, apiKeyParam, 
   return linesOutput.join("\n");
 }
 
-/**
- * Generates combined playlist for ALL providers
- */
-async function buildNamespacedPlaylist(workerDomain, providers, apiKeyParam, env) {
+async function buildNamespacedPlaylist(workerDomain, providers, apiKeyParam, env, allowedDomains) {
   let combinedLines = ["#EXTM3U"];
+  let successCount = 0;
 
   for (const provider of providers) {
     if (!provider.enabled) continue;
+    try {
+      const rawM3u = await getOrFetchProviderM3U(provider, env);
+      if (!rawM3u) {
+        console.warn(`[Playlist Notice] Skipping provider '${provider.name}' during merge because content was empty/unavailable.`);
+        continue;
+      }
 
-    const rawM3u = await getOrFetchProviderM3U(provider, env);
-    if (!rawM3u) continue;
+      const lines = rawM3u.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith("#EXTM3U")) continue;
 
-    const lines = rawM3u.split("\n");
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-
-      if (line.startsWith("#EXTM3U")) continue;
-
-      if (line.startsWith("http")) {
-        const streamId = extractStreamId(line);
-        if (streamId) {
-          combinedLines.push(`${workerDomain}/live/stream?id=${provider.prefix}_${streamId}.m3u8${apiKeyParam}`);
+        if (line.startsWith("http")) {
+          if (!validateStreamUrl(line, allowedDomains).valid) continue;
+          const streamId = extractStreamId(line);
+          if (streamId) {
+            combinedLines.push(`${workerDomain}/live/stream.m3u8?id=${provider.prefix}_${streamId}.m3u8${apiKeyParam}`);
+          } else {
+            combinedLines.push(line);
+          }
         } else {
           combinedLines.push(line);
         }
-      } else {
-        combinedLines.push(line);
       }
+      successCount++;
+    } catch (err) {
+      console.error(`[Merge Error] Error processing provider '${provider.name}' while building merged playlist:`, err.message);
     }
+  }
+
+  if (successCount === 0) {
+    throw new Error("All configured M3U providers failed to load.");
   }
 
   return combinedLines.join("\n");
 }
 
-/**
- * Strips file extension suffixes
- */
 function sanitizeStreamId(idParam) {
   return idParam.replace(/\.(m3u8|ts|mpd|m3u)$/i, "");
 }
 
-/**
- * Splits namespaced ID string into prefix and raw ID
- */
 function parseNamespacedId(fullId) {
   const match = fullId.match(/^([a-zA-Z0-9]+)_(.+)$/);
   if (match) {
@@ -341,41 +382,31 @@ function parseNamespacedId(fullId) {
   return { prefix: null, targetId: fullId };
 }
 
-/**
- * Direct lookup for a stream within a specific provider
- */
 async function findStreamInSpecificProvider(providers, prefix, streamId, env) {
   const provider = providers.find(p => p.prefix === prefix && p.enabled);
-  if (!provider) return null;
-
+  if (!provider) {
+    console.warn(`[Lookup Warning] Requested prefix '${prefix}' does not match any enabled provider.`);
+    return null;
+  }
   const m3uText = await getOrFetchProviderM3U(provider, env);
   if (!m3uText) return null;
-
   return parseM3UForId(m3uText, streamId);
 }
 
-/**
- * Fallback search across all providers
- */
 async function findStreamAcrossProviders(providers, streamId, env) {
   for (const provider of providers) {
     if (!provider.enabled) continue;
     const m3uText = await getOrFetchProviderM3U(provider, env);
     if (!m3uText) continue;
-
     const streamUrl = parseM3UForId(m3uText, streamId);
     if (streamUrl) return streamUrl;
   }
   return null;
 }
 
-/**
- * Extracts raw stream ID from provider link
- */
 function extractStreamId(streamUrl) {
   try {
     const parsed = new URL(streamUrl);
-
     if (parsed.searchParams.has("stream")) return sanitizeStreamId(parsed.searchParams.get("stream"));
     if (parsed.searchParams.has("id")) return sanitizeStreamId(parsed.searchParams.get("id"));
 
@@ -383,7 +414,6 @@ function extractStreamId(streamUrl) {
     if (pathSegments.length === 0) return null;
 
     const lastSegment = pathSegments[pathSegments.length - 1];
-
     if (lastSegment.toLowerCase().startsWith("index")) {
       const parentFolder = pathSegments[pathSegments.length - 2];
       return parentFolder ? sanitizeStreamId(parentFolder) : null;
@@ -391,21 +421,15 @@ function extractStreamId(streamUrl) {
 
     const match = lastSegment.match(/([a-zA-Z0-9_-]+)(?:\.(m3u8|ts|mpd|m3u))?$/i);
     return match ? sanitizeStreamId(match[1]) : null;
-
   } catch (e) {
     return null;
   }
 }
 
-/**
- * Finds stream matching raw ID in playlist content
- */
 function parseM3UForId(m3uContent, streamId) {
   const lines = m3uContent.split("\n");
-
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-
     if (line.startsWith("http")) {
       const lineId = extractStreamId(line);
       if (lineId && lineId === streamId) {
@@ -413,29 +437,21 @@ function parseM3UForId(m3uContent, streamId) {
       }
     }
   }
-
   return null;
 }
 
-/**
- * Rewrites extension parameter to m3u8
- */
 function convertToM3U8Url(rawUrl) {
   try {
     const parsedUrl = new URL(rawUrl);
-
     if (parsedUrl.searchParams.has("extension")) {
       parsedUrl.searchParams.set("extension", "m3u8");
     }
-
     let updatedUrl = parsedUrl.toString();
-
     if (parsedUrl.pathname.endsWith(".ts")) {
       updatedUrl = updatedUrl.replace(/\.ts(\?|$)/, ".m3u8$1");
     }
-
     return updatedUrl;
   } catch (e) {
     return rawUrl;
   }
-}
+			  }
