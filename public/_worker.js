@@ -124,7 +124,8 @@ export default {
       }
     }
 
-    return new Response("Apps is Active (Protected by API Key).", { status: 200 });
+    // return new Response("Apps is Active (Protected by API Key).", { status: 200 });
+    return env.ASSETS.fetch(request);
   }
 };
 
