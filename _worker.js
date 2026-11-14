@@ -4,7 +4,6 @@
 const DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 Minutes Cache
 
-// Approved media extensions whitelist
 const MEDIA_EXTENSIONS = {
   hls: ['.m3u8', '.m3u', '.ts', '.m4s', '.mp4', '.aac', '.mp3', '.vtt'],
   dash: ['.mpd', '.m4s', '.mp4', '.webm', '.vtt'],
@@ -20,7 +19,17 @@ export default {
     const workerDomain = url.origin;
 
     try {
-      // 1. Optional API Key security check
+      // 1. Serve Static Assets (Landing page HTML, CSS, images in public/) 
+      // If the path is root "/" or matches a static file, let Cloudflare Pages handle it.
+      if (url.pathname === "/" || url.pathname.startsWith("/static/") || url.pathname.endsWith(".html") || url.pathname.endsWith(".css") || url.pathname.endsWith(".js")) {
+        const assetResponse = await env.ASSETS.fetch(request);
+        // If the static asset exists, return it directly
+        if (assetResponse.status !== 404) {
+          return assetResponse;
+        }
+      }
+
+      // 2. Optional API Key security check for proxy routes
       const authError = verifyApiKey(url, env);
       if (authError) {
         console.warn(`[Security] Unauthorized access attempt from IP: ${request.headers.get("CF-Connecting-IP") || "unknown"}`);
@@ -29,7 +38,7 @@ export default {
 
       const apiKeyParam = env.API_KEY && env.API_KEY.trim() !== "" ? `&key=${encodeURIComponent(env.API_KEY)}` : "";
 
-      // 2. Build provider list from environment variables
+      // 3. Build provider list from environment variables
       const providers = buildProvidersFromEnv(env);
       if (providers.length === 0) {
         console.error("[Config Error] No provider environment variables (P1, P2, etc.) were found in environment settings.");
@@ -88,7 +97,7 @@ export default {
       }
 
       // ==========================================
-      // ROUTE 3: /live/stream?id=... (Stream Resolver)
+      // ROUTE 3: /live/stream.m3u8?id=... (Stream Resolver)
       // ==========================================
       if (url.pathname === "/live/stream") {
         const rawStreamId = url.searchParams.get("id");
@@ -115,7 +124,6 @@ export default {
 
           const formattedUrl = convertToM3U8Url(targetStreamUrl);
 
-          // Security Check: Validate domain and extensions
           const validationResult = validateStreamUrl(formattedUrl, allowedDomains);
           if (!validationResult.valid) {
             console.error(`[Security Violation] Blocked unsafe stream URL '${formattedUrl}'. Reason: ${validationResult.reason}`);
@@ -143,11 +151,10 @@ export default {
         }
       }
 
-      // Fallback for root or unknown paths
-      return new Response("IPTV Proxy Worker Active & Healthy.", { status: 200 });
+      // Fallback if asset missing and route unrecognized
+      return new Response("Not Found", { status: 404 });
 
     } catch (globalErr) {
-      // Catch-all for catastrophic unexpected crashes
       console.error("[Fatal Error] Unhandled exception in worker fetch handler:", globalErr.stack || globalErr.message);
       return new Response(`Internal Server Error: ${globalErr.message}`, { status: 500 });
     }
@@ -275,10 +282,7 @@ async function getOrFetchProviderM3U(provider, env) {
     const response = await fetch(provider.url, { method: "GET", headers: requestHeaders });
     if (!response.ok) {
       console.error(`[HTTP Error] Upstream provider '${provider.name}' returned status ${response.status} (${response.statusText}) for URL: ${provider.url}`);
-      if (cache.content) {
-        console.warn(`[Cache Notice] Serving stale cache for '${provider.name}' due to upstream fetch failure.`);
-        return cache.content;
-      }
+      if (cache.content) return cache.content;
       return null;
     }
 
@@ -287,10 +291,7 @@ async function getOrFetchProviderM3U(provider, env) {
     return cache.content;
   } catch (fetchErr) {
     console.error(`[Network Error] Failed connecting to provider '${provider.name}' (${provider.url}):`, fetchErr.message);
-    if (cache.content) {
-      console.warn(`[Cache Notice] Serving stale cache for '${provider.name}' due to network timeout/exception.`);
-      return cache.content;
-    }
+    if (cache.content) return cache.content;
     return null;
   }
 }
@@ -302,9 +303,7 @@ function isGitHubUrl(urlStr) {
 async function buildSingleProviderPlaylist(workerDomain, provider, apiKeyParam, env, allowedDomains) {
   let linesOutput = ["#EXTM3U"];
   const rawM3u = await getOrFetchProviderM3U(provider, env);
-  if (!rawM3u) {
-    throw new Error(`Unable to fetch or retrieve M3U content for ${provider.name}`);
-  }
+  if (!rawM3u) throw new Error(`Unable to fetch or retrieve M3U content for ${provider.name}`);
 
   const lines = rawM3u.split("\n");
   for (let i = 0; i < lines.length; i++) {
@@ -335,10 +334,7 @@ async function buildNamespacedPlaylist(workerDomain, providers, apiKeyParam, env
     if (!provider.enabled) continue;
     try {
       const rawM3u = await getOrFetchProviderM3U(provider, env);
-      if (!rawM3u) {
-        console.warn(`[Playlist Notice] Skipping provider '${provider.name}' during merge because content was empty/unavailable.`);
-        continue;
-      }
+      if (!rawM3u) continue;
 
       const lines = rawM3u.split("\n");
       for (let i = 0; i < lines.length; i++) {
@@ -359,14 +355,11 @@ async function buildNamespacedPlaylist(workerDomain, providers, apiKeyParam, env
       }
       successCount++;
     } catch (err) {
-      console.error(`[Merge Error] Error processing provider '${provider.name}' while building merged playlist:`, err.message);
+      console.error(`[Merge Error] Error processing provider '${provider.name}':`, err.message);
     }
   }
 
-  if (successCount === 0) {
-    throw new Error("All configured M3U providers failed to load.");
-  }
-
+  if (successCount === 0) throw new Error("All configured M3U providers failed to load.");
   return combinedLines.join("\n");
 }
 
@@ -384,10 +377,7 @@ function parseNamespacedId(fullId) {
 
 async function findStreamInSpecificProvider(providers, prefix, streamId, env) {
   const provider = providers.find(p => p.prefix === prefix && p.enabled);
-  if (!provider) {
-    console.warn(`[Lookup Warning] Requested prefix '${prefix}' does not match any enabled provider.`);
-    return null;
-  }
+  if (!provider) return null;
   const m3uText = await getOrFetchProviderM3U(provider, env);
   if (!m3uText) return null;
   return parseM3UForId(m3uText, streamId);
