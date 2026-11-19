@@ -1,4 +1,4 @@
-const PLAYLIST_SOURCE = "https://raw.githubusercontent.com/mrdnkl/apps/4bebe80bd277ba01a29a336f2aa3f3841579fd15/api/v1/pl.txt";
+const PLAYLIST_SOURCE = "your-playlist";
 const MAX_CONCURRENT_RESOLUTIONS = 4;
 const MAX_PAGE_SIZE = 100;
 
