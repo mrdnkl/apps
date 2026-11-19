@@ -1,0 +1,161 @@
+#EXTM3U
+# PLAYLIST CHECK BY MURID NAKAL 19-11-2026
+
+#EXTINF:-1 tvg-id="2935" tvg-name="Astro Badminton 1" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6a5de70a02a0b_3Il3.jpeg" group-title="Sports Channel",Astro Badminton 1
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2935
+
+#EXTINF:-1 tvg-id="2832" tvg-name="Astro Badminton" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6873536f40b50_nnOO.png" group-title="Sports Channel",Astro Badminton
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2832
+
+#EXTINF:-1 tvg-id="2833" tvg-name="Astro Badminton 2" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6873537eda97e_44L1.webp" group-title="Sports Channel",Astro Badminton 2
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2833
+
+#EXTINF:-1 tvg-id="2651" tvg-name="Arena" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/68b3dbdc7d39e_Vd9U.png" group-title="Sports Channel",Arena
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2651
+
+#EXTINF:-1 tvg-id="2710" tvg-name="Arena 2" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/68b3dbe7b03f2_4JBX.png" group-title="Sports Channel",Arena 2
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2710
+
+#EXTINF:-1 tvg-id="2691" tvg-name="Arena Bola 1" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/68b3dc0869b0a_z66A.png" group-title="Sports Channel",Arena Bola 1
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2691
+
+#EXTINF:-1 tvg-id="2781" tvg-name="Arena Bola 2" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/68b3dc1dca270_C70Y.png" group-title="Sports Channel",Arena Bola 2
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2781
+
+#EXTINF:-1 tvg-id="2825" tvg-name="Astro Beinsports 1" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/66d49c6028713_cGsV.jpeg" group-title="Sports Channel",Astro Beinsports 1
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2825
+
+#EXTINF:-1 tvg-id="2826" tvg-name="Astro Beinsports 2" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/66d49c8fe4e81_wV3l.jpeg" group-title="Sports Channel",Astro Beinsports 2
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2826
+
+#EXTINF:-1 tvg-id="2827" tvg-name="Astro Beinsports 3" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/66d49ca8b4d0f_h999.jpeg" group-title="Sports Channel",Astro Beinsports 3
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2827
+
+#EXTINF:-1 tvg-id="2653" tvg-name="Astro Cricket" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/63b0f03b82a7a_ca4k.png" group-title="Sports Channel",Astro Cricket
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2653
+
+#EXTINF:-1 tvg-id="2823" tvg-name="Astro Football" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/687352f02420a_U9RC.png" group-title="Sports Channel",Astro Football
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2823
+
+#EXTINF:-1 tvg-id="1791" tvg-name="Astro Football (Back Up 1)" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/68b3daee1904e_K0Yv.png" group-title="Sports Channel",Astro Football (Back Up 1)
+http://xsmt.ccwu.cc/xsmt/smt.php?id=1791
+
+#EXTINF:-1 tvg-id="2611" tvg-name="Astro Golf" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6313d0823d489_cuuc.png" group-title="Sports Channel",Astro Golf
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2611
+
+#EXTINF:-1 tvg-id="2822" tvg-name="Astro Grandstand" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6873520deb744_WA4y.png" group-title="Sports Channel",Astro Grandstand
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2822
+
+#EXTINF:-1 tvg-id="1790" tvg-name="Astro Grandstand (Back Up 1)" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/68b3dab338837_y8bs.png" group-title="Sports Channel",Astro Grandstand (Back Up 1)
+http://xsmt.ccwu.cc/xsmt/smt.php?id=1790
+
+#EXTINF:-1 tvg-id="1788" tvg-name="Astro PL 1" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/68b3db81b45be_Hh0H.png" group-title="Sports Channel",Astro PL 1
+http://xsmt.ccwu.cc/xsmt/smt.php?id=1788
+
+#EXTINF:-1 tvg-id="2820" tvg-name="Astro PL 1 (Back Up 1)" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/687352fad593a_NYzy.png" group-title="Sports Channel",Astro PL 1 (Back Up 1)
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2820
+
+#EXTINF:-1 tvg-id="2821" tvg-name="Astro PL 2" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/687352e3bc356_Ze61.png" group-title="Sports Channel",Astro PL 2
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2821
+
+#EXTINF:-1 tvg-id="2610" tvg-name="Astro Sports Plus" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6873535cc3304_c1LG.png" group-title="Sports Channel",Astro Sports Plus
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2610
+
+#EXTINF:-1 tvg-id="2834" tvg-name="Astro W-Sports" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6717d4ed62014_CLKW.jpeg" group-title="Sports Channel",Astro W-Sports
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2834
+
+#EXTINF:-1 tvg-id="1631" tvg-name="CCTV-5 體育" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/5ba76f63a5e4f_bnN4.png" group-title="Sports Channel",CCTV-5 體育
+http://xsmt.ccwu.cc/xsmt/smt.php?id=1631
+
+#EXTINF:-1 tvg-id="890" tvg-name="CCTV-5+ 體育" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/5a21137727b90_Ay7G.png" group-title="Sports Channel",CCTV-5+ 體育
+http://xsmt.ccwu.cc/xsmt/smt.php?id=890
+
+#EXTINF:-1 tvg-id="2869" tvg-name="DAZN 1" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/68937a3c30070_7uCt.png" group-title="Sports Channel",DAZN 1
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2869
+
+#EXTINF:-1 tvg-id="2870" tvg-name="DAZN 2" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/68937a5570df2_vtEZ.png" group-title="Sports Channel",DAZN 2
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2870
+
+#EXTINF:-1 tvg-id="2871" tvg-name="Elta体育1台" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6a60e91132c0a_CJ18.png" group-title="Sports Channel",Elta体育1台
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2871
+
+#EXTINF:-1 tvg-id="2922" tvg-name="Elta体育4台" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6a60e961165c6_fgx8.png" group-title="Sports Channel",Elta体育4台
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2922
+
+#EXTINF:-1 tvg-id="1541" tvg-name="Elta體育2台" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6a60e93b741c7_1cOx.png" group-title="Sports Channel",Elta體育2台
+http://xsmt.ccwu.cc/xsmt/smt.php?id=1541
+
+#EXTINF:-1 tvg-id="2578" tvg-name="Elta體育3台" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6a60e94edae9a_MS6M.png" group-title="Sports Channel",Elta體育3台
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2578
+
+#EXTINF:-1 tvg-id="1694" tvg-name="NBA TV" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/5c2e37740d88a_LHbt.png" group-title="Sports Channel",NBA TV
+http://xsmt.ccwu.cc/xsmt/smt.php?id=1694
+
+#EXTINF:-1 tvg-id="2695" tvg-name="Rugby Pass TV" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/64007fee62c4f_Sk2S.png" group-title="Sports Channel",Rugby Pass TV
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2695
+
+#EXTINF:-1 tvg-id="2934" tvg-name="Skysports Action" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6a5ddde70c525_GnI1.png" group-title="Sports Channel",Skysports Action
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2934
+
+#EXTINF:-1 tvg-id="2933" tvg-name="Skysports Arena" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6a5dddcd5daf7_zXtd.png" group-title="Sports Channel",Skysports Arena
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2933
+
+#EXTINF:-1 tvg-id="2861" tvg-name="Skysports Cricket" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6883b83271dcd_Bwme.png" group-title="Sports Channel",Skysports Cricket
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2861
+
+#EXTINF:-1 tvg-id="2862" tvg-name="Skysports EPL" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6883b85b83d1f_l6Dz.png" group-title="Sports Channel",Skysports EPL
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2862
+
+#EXTINF:-1 tvg-id="2863" tvg-name="Skysports F1" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6883b87c2d727_E7CU.png" group-title="Sports Channel",Skysports F1
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2863
+
+#EXTINF:-1 tvg-id="2931" tvg-name="Skysports Football" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6a5ddcceaa7a3_0vmJ.png" group-title="Sports Channel",Skysports Football
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2931
+
+#EXTINF:-1 tvg-id="2864" tvg-name="Skysports Golf" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6883b8a043a6f_1ZT6.png" group-title="Sports Channel",Skysports Golf
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2864
+
+#EXTINF:-1 tvg-id="2865" tvg-name="Skysports Main Event" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6883b8c44cc6f_ILRn.png" group-title="Sports Channel",Skysports Main Event
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2865
+
+#EXTINF:-1 tvg-id="2866" tvg-name="Skysports Mix" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6883b8daa4763_e00V.png" group-title="Sports Channel",Skysports Mix
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2866
+
+#EXTINF:-1 tvg-id="2932" tvg-name="Skysports News" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6a5ddcfd831a2_353Z.png" group-title="Sports Channel",Skysports News
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2932
+
+#EXTINF:-1 tvg-id="2867" tvg-name="Skysports Racing" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6883b9cd53a9b_MMsH.png" group-title="Sports Channel",Skysports Racing
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2867
+
+#EXTINF:-1 tvg-id="2628" tvg-name="SPO TV 2" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/636ce992c5fb3_4XFa.png" group-title="Sports Channel",SPO TV 2
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2628
+
+#EXTINF:-1 tvg-id="2709" tvg-name="SPOTV 1 HD" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/644eaba65a543_A0u6.png" group-title="Sports Channel",SPOTV 1 HD
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2709
+
+#EXTINF:-1 tvg-id="1789" tvg-name="Supersports 2" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/5cdd7d464cc88_2Ong.jpg" group-title="Sports Channel",Supersports 2
+http://xsmt.ccwu.cc/xsmt/smt.php?id=1789
+
+#EXTINF:-1 tvg-id="2764" tvg-name="Tnt Sports 1" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6951fec4a8044_bwpD.png" group-title="Sports Channel",Tnt Sports 1
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2764
+
+#EXTINF:-1 tvg-id="2765" tvg-name="TNT Sports 2" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6951fed5dbbd6_2ez5.png" group-title="Sports Channel",TNT Sports 2
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2765
+
+#EXTINF:-1 tvg-id="2766" tvg-name="TNT Sports 3" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6951fee405567_7p3b.png" group-title="Sports Channel",TNT Sports 3
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2766
+
+#EXTINF:-1 tvg-id="2767" tvg-name="TNT Sports 4" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/6951fef17a1b7_THvq.png" group-title="Sports Channel",TNT Sports 4
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2767
+
+#EXTINF:-1 tvg-id="1622" tvg-name="TVRi National" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/5b868548cd8db_6uIi.jpg" group-title="Sports Channel",TVRi National
+http://xsmt.ccwu.cc/xsmt/smt.php?id=1622
+
+#EXTINF:-1 tvg-id="1922" tvg-name="WWE" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/5d7e268145b2a_8D8s.png" group-title="Sports Channel",WWE
+http://xsmt.ccwu.cc/xsmt/smt.php?id=1922
+
+#EXTINF:-1 tvg-id="2086" tvg-name="博斯网球 HD" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/5f16f37b7740e_E2eC.png" group-title="Sports Channel",博斯网球 HD
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2086
+
+#EXTINF:-1 tvg-id="2085" tvg-name="博斯高球2 HD" tvg-logo="http://tpshen.com:16310/uploadfiles/livelogo/5f16f32607f4a_wZ5H.png" group-title="Sports Channel",博斯高球2 HD
+http://xsmt.ccwu.cc/xsmt/smt.php?id=2085
