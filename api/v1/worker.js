@@ -1,5 +1,6 @@
 const PLAYLIST_SOURCE = "https://raw.githubusercontent.com/mrdnkl/apps/4bebe80bd277ba01a29a336f2aa3f3841579fd15/api/v1/pl.txt";
 const MAX_CONCURRENT_RESOLUTIONS = 4;
+const MAX_PAGE_SIZE = 100;
 
 export default {
   async fetch(request) {
@@ -16,6 +17,12 @@ export default {
       return new Response("Not found. Download /playlist.m3u", { status: 404 });
     }
 
+    const start = parseQueryInteger(requestUrl.searchParams.get("start"), 0);
+    const limit = parseQueryInteger(requestUrl.searchParams.get("limit"), MAX_PAGE_SIZE);
+    if (start === null || limit === null || limit < 1 || limit > MAX_PAGE_SIZE) {
+      return new Response("Use non-negative start and limit from 1 to 100", { status: 400 });
+    }
+
     try {
       const sourceResponse = await fetch(PLAYLIST_SOURCE, {
         headers: { Accept: "application/vnd.apple.mpegurl, text/plain" },
@@ -26,30 +33,32 @@ export default {
         return new Response("Could not load the source playlist", { status: 502 });
       }
 
-      const source = await sourceResponse.text();
-      const lines = source.split(/\r?\n/);
-      const streamLines = [];
+      const { header, entries } = parsePlaylist(await sourceResponse.text());
+      const selectedEntries = entries.slice(start, start + limit);
+      const streamLines = selectedEntries.flatMap((entry) =>
+        entry
+          .map((line, index) => (/^https?:\/\//i.test(line.trim()) ? index : -1))
+          .filter((index) => index >= 0)
+          .map((index) => ({ entry, index })),
+      );
 
-      for (let index = 0; index < lines.length; index += 1) {
-        const line = lines[index].trim();
-        if (/^https?:\/\//i.test(line)) streamLines.push(index);
-      }
-
-      await mapLimit(streamLines, MAX_CONCURRENT_RESOLUTIONS, async (lineIndex) => {
-        const originalUrl = lines[lineIndex].trim();
+      await mapLimit(streamLines, MAX_CONCURRENT_RESOLUTIONS, async ({ entry, index }) => {
+        const originalUrl = entry[index].trim();
         try {
-          lines[lineIndex] = await resolveRedirect(originalUrl);
+          entry[index] = await resolveRedirect(originalUrl);
         } catch {
           // Keep the source URL in the playlist when resolution fails.
-          lines[lineIndex] = originalUrl;
+          entry[index] = originalUrl;
         }
       });
 
-      return new Response(`${lines.join("\n").replace(/\n*$/, "")}\n`, {
+      const output = [...header, ...selectedEntries.flat()].join("\n").replace(/\n*$/, "");
+      const filename = `playlist-${start}-${Math.max(start, start + selectedEntries.length - 1)}.m3u`;
+      return new Response(`${output}\n`, {
         status: 200,
         headers: {
           "Content-Type": "audio/x-mpegurl; charset=utf-8",
-          "Content-Disposition": 'attachment; filename="playlist.m3u"',
+          "Content-Disposition": `attachment; filename="${filename}"`,
           "Cache-Control": "no-store, no-cache, must-revalidate",
           "X-Content-Type-Options": "nosniff",
         },
@@ -59,6 +68,34 @@ export default {
     }
   },
 };
+
+function parseQueryInteger(value, fallback) {
+  if (value === null) return fallback;
+  if (!/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+function parsePlaylist(source) {
+  const lines = source.split(/\r?\n/);
+  const firstEntry = lines.findIndex((line) => line.startsWith("#EXTINF:"));
+  if (firstEntry === -1) return { header: lines, entries: [] };
+
+  const header = lines.slice(0, firstEntry);
+  const entries = [];
+  let currentEntry = [];
+
+  for (const line of lines.slice(firstEntry)) {
+    if (line.startsWith("#EXTINF:") && currentEntry.length > 0) {
+      entries.push(currentEntry);
+      currentEntry = [];
+    }
+    currentEntry.push(line);
+  }
+  if (currentEntry.length > 0) entries.push(currentEntry);
+
+  return { header, entries };
+}
 
 async function resolveRedirect(value) {
   const url = new URL(value);
